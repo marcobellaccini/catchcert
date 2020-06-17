@@ -1,0 +1,154 @@
+name: Upload Release
+
+on:
+  push:
+    tags:
+    - v* # Push events to matching v*, i.e. v1.0, v20.15.10
+
+env:
+    go-version: 1.14.x
+
+jobs:
+    build_linux_amd64:
+        name: Build for GNU/Linux amd64
+        runs-on: ubuntu-latest
+        steps:
+        - name: Install Go
+          uses: actions/setup-go@v2
+          with:
+            go-version: ${{ go-version }}
+        
+        - uses: actions/checkout@v2
+
+        - name: Build
+            run: go build -o .
+            env:
+                GOARCH: amd64
+                GOOS: linux
+    
+        - name: Upload build artifact
+            uses: actions/upload-artifact@v1
+            with:
+                name: catchcert-linux-amd64
+                path: ./catchcert
+    
+    build_windows_amd64:
+        name: Build for Windows amd64
+        runs-on: ubuntu-latest
+        steps:
+          - name: Install Go
+            uses: actions/setup-go@v2
+            with:
+                go-version: ${{ go-version }}
+        
+        - uses: actions/checkout@v2
+
+        - name: Build
+            run: go build -o .
+            env:
+                GOARCH: amd64
+                GOOS: windows
+    
+        - name: Upload build artifact
+          uses: actions/upload-artifact@v1
+          with:
+            name: catchcert-windows-amd64
+            path: ./catchcert.exe
+    
+    build_macos_amd64:
+        name: Build for macOS amd64
+        runs-on: ubuntu-latest
+        steps:
+        - name: Install Go
+          uses: actions/setup-go@v2
+          with:
+            go-version: ${{ go-version }}
+        
+        - uses: actions/checkout@v2
+    
+        - name: Build
+          run: go build -o .
+          env:
+            GOARCH: amd64
+            GOOS: darwin
+        
+        - name: Upload build artifact
+          uses: actions/upload-artifact@v1
+          with:
+            name: catchcert-darwin-amd64
+            path: ./catchcert
+
+    create_release:
+        needs: [build_linux_amd64, build_macos_amd64, build_windows_amd64]
+        name: Create Release
+        runs-on: ubuntu-latest
+    
+        steps:
+        - name: Create Release
+            id: create_release
+            uses: actions/create-release@v1
+            env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            with:
+            tag_name: ${{ github.ref }}
+            release_name: Release ${{ github.ref }}
+            draft: false
+            prerelease: false
+        - name: Get the version # https://github.community/t5/GitHub-Actions/How-to-get-just-the-tag-name/m-p/32163/highlight/true#M1024
+            id: get_version
+            run: echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)
+        
+        # get artifacts containing the builds
+        - name: Download catchcert-linux-amd64
+            uses: actions/download-artifact@v1
+            with:
+            name: catchcert-linux-amd64
+        - name: Download catchcert-darwin-amd64
+            uses: actions/download-artifact@v1
+            with:
+            name: catchcert-darwin-amd64
+        - name: Download catchcert-windows-amd64
+            uses: actions/download-artifact@v1
+            with:
+            name: catchcert-windows-amd64
+    
+        # create tar archives
+        - shell: bash
+            run: |
+            chmod +x ./catchcert-linux-amd64/catchcert
+            chmod +x ./catchcert-darwin-amd64/catchcert
+            chmod +x ./catchcert-windows-amd64/catchcert.exe
+            tar -czf catchcert-${{ steps.get_version.outputs.VERSION }}-linux-amd64.tar.gz -C ./catchcert-linux-amd64 .
+            tar -czf catchcert-${{ steps.get_version.outputs.VERSION }}-darwin-amd64.tar.gz -C ./catchcert-darwin-amd64 .
+            zip -r catchcert-${{ steps.get_version.outputs.VERSION }}-windows-amd64.zip ./catchcert-windows-amd64
+        # upload archives
+        - name: Upload Release Asset Linux amd64
+            id: upload-release-asset-linux-amd64
+            uses: actions/upload-release-asset@v1
+            env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            with:
+            upload_url: ${{ steps.create_release.outputs.upload_url }}
+            asset_path: ./catchcert-${{ steps.get_version.outputs.VERSION }}-linux-amd64.tar.gz
+            asset_name: catchcert-${{ steps.get_version.outputs.VERSION }}-linux-amd64.tar.gz
+            asset_content_type: application/gzip
+        - name: Upload Release Asset macOS amd64
+            id: upload-release-asset-macos-amd64
+            uses: actions/upload-release-asset@v1
+            env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            with:
+            upload_url: ${{ steps.create_release.outputs.upload_url }}
+            asset_path: ./catchcert-${{ steps.get_version.outputs.VERSION }}-darwin-amd64.tar.gz
+            asset_name: catchcert-${{ steps.get_version.outputs.VERSION }}-darwin-amd64.tar.gz
+            asset_content_type: application/gzip
+        - name: Upload Release Asset Windows amd64
+            id: upload-release-asset-windows-amd64
+            uses: actions/upload-release-asset@v1
+            env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            with:
+            upload_url: ${{ steps.create_release.outputs.upload_url }}
+            asset_path: ./catchcert-${{ steps.get_version.outputs.VERSION }}-windows-amd64.zip
+            asset_name: catchcert-${{ steps.get_version.outputs.VERSION }}-windows-amd64.zip
+            asset_content_type: application/zip
