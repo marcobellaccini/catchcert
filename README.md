@@ -14,7 +14,7 @@ $ catchcert wikipedia.org
 $ catchcert github.com > github.pem
 
 # port is optional (defaults to 443)
-> catchcert dc.contoso.com 636 > contoso_dc.crt
+$ catchcert dc.contoso.com 636 > contoso_dc.crt
 ```
 
 ## Get it!
