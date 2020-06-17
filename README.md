@@ -1,5 +1,7 @@
 # catchcert
 
+![Tests](https://github.com/marcobellaccini/catchcert/workflows/Tests/badge.svg)
+
 Connect to a server using TLS 🔒 and get PEM-encoded server certificate 📜.
 
 It's a pretty trivial tool, yet it rocks! 🎸
