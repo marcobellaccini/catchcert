@@ -97,15 +97,15 @@ jobs:
         
           # get artifacts containing the builds
           - name: Download catchcert-linux-amd64
-            uses: actions/download-artifact@v1
+            uses: actions/download-artifact@v4
             with:
               name: catchcert-linux-amd64
           - name: Download catchcert-darwin-amd64
-            uses: actions/download-artifact@v1
+            uses: actions/download-artifact@v4
             with:
               name: catchcert-darwin-amd64
           - name: Download catchcert-windows-amd64
-            uses: actions/download-artifact@v1
+            uses: actions/download-artifact@v4
             with:
               name: catchcert-windows-amd64
     
